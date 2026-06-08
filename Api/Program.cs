@@ -1,41 +1,67 @@
+using Microsoft.EntityFrameworkCore;
+using Api.Data;
+using Api.Model;
+
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
-builder.Services.AddOpenApi();
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
+builder.Services.AddDbContext<AppDbContext>(options =>
+    options.UseInMemoryDatabase("database"));
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
-    app.MapOpenApi();
+    app.UseSwagger();
+    app.UseSwaggerUI();
 }
 
 app.UseHttpsRedirection();
 
-var summaries = new[]
-{
-    "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
-};
+app.MapGet("/api/cars", async (AppDbContext db) =>
+    await db.Cars.ToListAsync());
 
-app.MapGet("/weatherforecast", () =>
-    {
-        var forecast = Enumerable.Range(1, 5).Select(index =>
-                new WeatherForecast
-                (
-                    DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
-                    Random.Shared.Next(-20, 55),
-                    summaries[Random.Shared.Next(summaries.Length)]
-                ))
-            .ToArray();
-        return forecast;
-    })
-    .WithName("GetWeatherForecast");
+app.MapGet("/api/cars/{id:guid}", async (Guid id, AppDbContext db) =>
+{
+    var result = await db.Cars.FindAsync(id);
+    return result is not null ? Results.Ok(result) : Results.NotFound();
+});
+
+app.MapPost("/api/cars", async (Car car, AppDbContext db) =>
+{
+    if (car.Id == Guid.Empty)
+        car.Id = Guid.NewGuid();
+
+    db.Cars.Add(car);
+    await db.SaveChangesAsync();
+    return Results.Created($"/api/cars/{car.Id}", car);
+});
+
+app.MapPut("/api/cars/{id:guid}", async (Guid id, Car inputCar, AppDbContext db) =>
+{
+    var car = await db.Cars.FindAsync(id);
+    if (car is null) return Results.NotFound();
+
+    car.Model = inputCar.Model;
+    car.Brand = inputCar.Brand;
+    car.HorsePower = inputCar.HorsePower;
+    car.Doors = inputCar.Doors;
+    car.Fuel = inputCar.Fuel;
+    car.Colors = inputCar.Colors;
+
+    await db.SaveChangesAsync();
+    return Results.NoContent();
+});
+
+app.MapDelete("/api/cars/{id:guid}", async (Guid id, AppDbContext db) =>
+{
+    var car = await db.Cars.FindAsync(id);
+    if (car is null) return Results.NotFound();
+
+    db.Cars.Remove(car);
+    await db.SaveChangesAsync();
+    return Results.Ok();
+});
 
 app.Run();
-
-record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
-{
-    public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
-}
