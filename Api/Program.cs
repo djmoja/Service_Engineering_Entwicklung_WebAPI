@@ -6,9 +6,9 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
-builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseInMemoryDatabase("database"));
-
+builder.Services.AddDbContext<AppDbContext>(optionsBuilder =>
+    optionsBuilder.UseSqlite("Data Source=mydatabase.db")
+);
 var app = builder.Build();
 
 if (app.Environment.IsDevelopment())
