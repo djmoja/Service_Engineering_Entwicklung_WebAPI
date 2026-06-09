@@ -12,7 +12,7 @@ der Entwicklung mit Rider hat.
 - .Net 9 SDK
 - Rider
 - Swagger
-- SQL Version? (PSQL, SQLite)
+- SQLite
 
 ## Installation
 
@@ -94,8 +94,20 @@ Es wird mit DotNet9.0 gearbeitet.
 Abhängigkeiten/Pakete wurden via NuGet Paketmanager installiert.
 Diese Pakete sind:
 
-- Microsoft.EntityFramworkCore.InMemory V. 9.0.16
-- Swashbuckle.AspNetCore V. 10.2.1
+### Microsoft.EntityFramworkCore.InMemory V. 9.0.16 
+Speichert Daten (nur) im Ram.
+Wird noch auf SQLite umgebaut.
+
+### Swashbuckle.AspNetCore V. 10.2.1
+Zur automatischen Generierung einer Swagger / OpenAPI-Dokumentation
+
+Zukünftig:
+### Microsoft.EntityFrameworkCore.Sqlite
+Zur Einbindung einer SQLite DB.
+
+### Microsoft.EntityFrameworkCore.Tools
+Hilfreiche Werkzeuge zum Erstellen von Datenbankschemen mithilfe von Migrationen.
+
 
 ## Model
 
