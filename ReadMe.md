@@ -86,7 +86,7 @@ Braucht einen .json Body mit den entsprechenden Attributen des Autos.
 > [!WARNING]
 > Funktioniert nur, wenn die ID vergeben ist.
 
-# 3. Implementierung
+# 3. Implementierung der API (ohne Sicherheit)
 
 ## Abhängigkeiten
 
@@ -94,11 +94,7 @@ Es wird mit DotNet9.0 gearbeitet.
 Abhängigkeiten/Pakete wurden via NuGet Paketmanager installiert.
 Diese Pakete sind:
 
-### Microsoft.EntityFramworkCore.InMemory V. 9.0.16 
-Speichert Daten (nur) im Ram.
-Wird noch auf SQLite umgebaut.
-
-### Swashbuckle.AspNetCore V. 10.2.1
+### Swashbuckle.AspNetCore V. 6.5.0
 Zur automatischen Generierung einer Swagger / OpenAPI-Dokumentation
 
 Zukünftig:
@@ -213,7 +209,120 @@ public class AppDbContext : DbContext
 }
 ```
 
-# 4. Tests
+# 4. Implementierung mit Sicherheit
+
+## ApiKeyAuthenticationHandler.cs
+
+```
+namespace Api.Handler;
+
+using System.Security.Claims;
+using System.Text.Encodings.Web;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.Extensions.Options;
+
+public class ApiKeyAuthenticationHandler : AuthenticationHandler<AuthenticationSchemeOptions>
+{
+private readonly IConfiguration _configuration;
+public const string SchemeName = "ApiKey";
+
+    public ApiKeyAuthenticationHandler(
+        IOptionsMonitor<AuthenticationSchemeOptions> options,
+        ILoggerFactory logger,
+        UrlEncoder encoder,
+        IConfiguration configuration)
+        : base(options, logger, encoder)
+    {
+        _configuration = configuration;
+    }
+
+    protected override Task<AuthenticateResult> HandleAuthenticateAsync()
+    {
+        if (!Request.Headers.TryGetValue("X-API-Key", out var extractedApiKey))
+        {
+            return Task.FromResult(AuthenticateResult.Fail("API-Key fehlt im Header."));
+        }
+
+        var apiKey = _configuration["ApiSettings:Key"];
+        if (!apiKey.Equals(extractedApiKey))
+        {
+            return Task.FromResult(AuthenticateResult.Fail("Ungültiger API-Key."));
+        }
+
+        var claims = new[] { new Claim(ClaimTypes.Name, "ApiUser") };
+        var identity = new ClaimsIdentity(claims, SchemeName);
+        var principal = new ClaimsPrincipal(identity);
+        var ticket = new AuthenticationTicket(principal, SchemeName);
+
+        return Task.FromResult(AuthenticateResult.Success(ticket));
+    }
+}
+```
+
+## Programm.cs
+```
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = ApiKeyAuthenticationHandler.SchemeName;
+    options.DefaultChallengeScheme = ApiKeyAuthenticationHandler.SchemeName;
+})
+.AddScheme<AuthenticationSchemeOptions, ApiKeyAuthenticationHandler>(
+    ApiKeyAuthenticationHandler.SchemeName, null);
+
+builder.Services.AddAuthorization();
+...
+app.UseAuthentication();
+app.UseAuthorization();
+...
+app.MapPost(...).RequireAuthorization();
+app.MapPut(...).RequireAuthorization();
+app.MapDelete(...).RequireAuthorization();
+...
+// Autho. Button in SwaggerUI
+builder.Services.AddSwaggerGen(c =>
+{
+    c.SwaggerDoc("v1", new Microsoft.OpenApi.Models.OpenApiInfo 
+    { 
+        Title = "Car API", 
+        Version = "v1" 
+    });
+    
+    c.AddSecurityDefinition("ApiKey", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+    {
+        Description = "Bitte geben Sie Ihren API-Key ein. Dieser wird als 'X-API-Key' Header mitgesendet.",
+        In = Microsoft.OpenApi.Models.ParameterLocation.Header,
+        Name = "X-API-Key",
+        Type = Microsoft.OpenApi.Models.SecuritySchemeType.ApiKey,
+        Scheme = "ApiKeyScheme"
+    });
+    
+    c.AddSecurityRequirement(new Microsoft.OpenApi.Models.OpenApiSecurityRequirement
+    {
+        {
+            new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+            {
+                Reference = new Microsoft.OpenApi.Models.OpenApiReference
+                {
+                    Type = Microsoft.OpenApi.Models.ReferenceType.SecurityScheme,
+                    Id = "ApiKey"
+                }
+            },
+            Array.Empty<string>()
+        }
+    });
+});
+```
+
+## appsettings.json
+```
+{
+  "ApiSettings": {
+    "Key": "f47ac10b-58cc-4372-a567-0e02b2c3d479"
+  }
+}
+```
+
+# 5. Tests
 
 - aktuell nur Klicktests in der SwaggerUI
 
