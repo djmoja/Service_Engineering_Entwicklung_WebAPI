@@ -26,7 +26,7 @@ public class ApiIntegrationTest : IClassFixture<CustomWebApplicationFactory>
     [Fact]
     public async Task GetCarById_WithoutApiKey_ReturnsNotFound()
     {
-        var response = await _client.GetAsync($"/api/cars/{Guid.NewGuid()}");
+        var response = await _client.GetAsync($"/api/cars/{''}");
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
 
@@ -50,14 +50,14 @@ public class ApiIntegrationTest : IClassFixture<CustomWebApplicationFactory>
     public async Task PutCar_WithoutApiKey_ReturnsUnauthorized()
     {
         var car = new Car { Model = "Updated" };
-        var response = await _client.PutAsJsonAsync($"/api/cars/{Guid.NewGuid()}", car);
+        var response = await _client.PutAsJsonAsync($"/api/cars/{''}", car);
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
 
     [Fact]
     public async Task DeleteCar_WithoutApiKey_ReturnsUnauthorized()
     {
-        var response = await _client.DeleteAsync($"/api/cars/{Guid.NewGuid()}");
+        var response = await _client.DeleteAsync($"/api/cars/{''}");
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
 
@@ -81,7 +81,7 @@ public class ApiIntegrationTest : IClassFixture<CustomWebApplicationFactory>
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
         var createdCar = await response.Content.ReadFromJsonAsync<Car>();
         Assert.NotNull(createdCar);
-        Assert.NotEqual(Guid.Empty, createdCar.Id);
+        Assert.NotEqual("", createdCar.Id);
     }
 
     [Fact]
