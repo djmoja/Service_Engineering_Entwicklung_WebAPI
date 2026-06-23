@@ -62,7 +62,7 @@ app.UseSwaggerUI(options =>
 app.MapGet("/api/cars", async (AppDbContext db) =>
     await db.Cars.ToListAsync());
 
-app.MapGet("/api/cars/{id:guid}", async (Guid id, AppDbContext db) =>
+app.MapGet("/api/cars/{id}", async (string id, AppDbContext db) =>
 {
     var result = await db.Cars.FindAsync(id);
     return result is not null ? Results.Ok(result) : Results.NotFound();
@@ -70,13 +70,13 @@ app.MapGet("/api/cars/{id:guid}", async (Guid id, AppDbContext db) =>
 
 app.MapPost("/api/cars", async (Car car, AppDbContext db) =>
 {
-    if (car.Id == Guid.Empty) car.Id = Guid.NewGuid();
+    if (car.Id == "") car.Id = car.Brand+"-"+car.Model+"-"+car.ConstructionYear;
     db.Cars.Add(car);
     await db.SaveChangesAsync();
     return Results.Created($"/api/cars/{car.Id}", car);
 }).RequireAuthorization();
 
-app.MapPut("/api/cars/{id:guid}", async (Guid id, Car inputCar, AppDbContext db) =>
+app.MapPut("/api/cars/{id}", async (string id, Car inputCar, AppDbContext db) =>
 {
     var car = await db.Cars.FindAsync(id);
     if (car is null) return Results.NotFound();
@@ -86,11 +86,12 @@ app.MapPut("/api/cars/{id:guid}", async (Guid id, Car inputCar, AppDbContext db)
     car.Doors = inputCar.Doors;
     car.Fuel = inputCar.Fuel;
     car.Colors = inputCar.Colors;
+    car.ConstructionYear = inputCar.ConstructionYear;
     await db.SaveChangesAsync();
     return Results.NoContent();
 }).RequireAuthorization();
 
-app.MapDelete("/api/cars/{id:guid}", async (Guid id, AppDbContext db) =>
+app.MapDelete("/api/cars/{id}", async (string id, AppDbContext db) =>
 {
     var car = await db.Cars.FindAsync(id);
     if (car is null) return Results.NotFound();
