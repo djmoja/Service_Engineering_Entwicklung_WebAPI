@@ -55,7 +55,7 @@ app.UseAuthorization();
 app.UseSwagger();
 app.UseSwaggerUI(options =>
 {
-    options.SwaggerEndpoint("/swagger/v1/swagger.json", "Car API v1");
+    options.SwaggerEndpoint("/swagger/v2/swagger.json", "Car API v2");
     options.RoutePrefix = string.Empty;
 });
 
