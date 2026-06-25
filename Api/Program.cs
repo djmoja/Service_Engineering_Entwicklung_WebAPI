@@ -59,8 +59,25 @@ app.UseSwaggerUI(options =>
     options.RoutePrefix = string.Empty;
 });
 
-app.MapGet("/api/cars", async (AppDbContext db) =>
-    await db.Cars.ToListAsync());
+app.MapGet("/api/cars", async (AppDbContext db, int page = 1, int pageSize = 10) =>
+{
+    var totalCount = await db.Cars.CountAsync();
+    var cars = await db.Cars
+        .OrderBy(c => c.Brand)
+        .ThenBy(c => c.Model)
+        .Skip((page - 1) * pageSize)
+        .Take(pageSize)
+        .ToListAsync();
+
+    return Results.Ok(new
+    {
+        TotalCount = totalCount,
+        Page = page,
+        PageSize = pageSize,
+        TotalPages = (int)Math.Ceiling(totalCount / (double)pageSize),
+        Items = cars
+    });
+});
 
 app.MapGet("/api/cars/{id}", async (string id, AppDbContext db) =>
 {
